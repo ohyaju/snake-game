@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useInterval } from 'usehooks-ts';
+
 const size = 20;
 
 const board = {
@@ -9,8 +10,17 @@ const board = {
 };
 
 export default function Home() {
-  const [head, setHead] = useState({ top: 0, left: 0 });
+  const [head, setHead] = useState({ top: 3, left: 5 });
+  const [speed,setSpeed] = useState(200);
+  const [food,setFood] =useState({top:5,left:5})
+  const [tails, setTails] = useState([
+    { top: 3, left: 2 },
+    { top: 3, left: 3 },
+    { top: 3, left: 4 },
+  ]);
+
   const [direction, setDirection] = useState("right");
+  const [newDirection, setNewDirection]=useState("right");
 
   useEffect(() => {
     document.addEventListener("keydown", (e) => {
@@ -36,8 +46,25 @@ export default function Home() {
   });
 
   function gameLoop() {
+    let nextDirection = "right";
+    if (newDirection === "right" && direction !== "left"){
+      nextDirection="right";
+    } else if (newDirection === "left" && direction !== "right"){
+      nextDirection="left";
+    } else if (newDirection === "up" && direction !== "down"){
+      nextDirection="up";
+    } else if (newDirection === "down" && direction !== "up"){
+      nextDirection="down"; 
+    }
+    setDirection(newDirection);
+
     let newLeft = head.left;
-    let neewTop = head.top;
+    let newTop = head.top;
+
+    const newTails = [...tails];
+    newTails.push(head);
+    newTails.shift();
+    setTails(newTails);
 
     switch (direction) {
       case "right": {
@@ -69,26 +96,64 @@ export default function Home() {
         break;
       }
     }
+ //check game over
+ if (tails.find((tail)=>tail.left === newLeft && tail.top === newTop)){
+  setSpeed (null);
+  // alert("GAMEOVER");
+  // location.reload();
+ }
+ setHead ({top: newTop, left: newLeft});
+ 
+ if (newTop === food.top && newLeft === food.left){
+  newTails.push(head);
+  setTails(newTails);
+  generateNewFood();
+ }
+}
 
-    setHead({ top: newTop, left: newLeft });
-  }
+function generateNewFood (){
+  const newFoodTop = getRandomInt (board.height);
+  const newFoodLeft = getRandomInt (board.width);
 
+  setFood ({top: newFoodTop, left: newFoodLeft});
+}
+function getRandomInt(max){
+  return Math.floor(Math.random() * max);
+}
   useInterval(() => {
     gameLoop();
-  }, 500);
+  }, speed);
 
+  function changeDirection (newDirection){
+    setNewDirection(newDirection);
+  }
 
 
   return (
     <div>
-      <div style={{ width: board.width * size, height: board.height * size }} className="relative bg-pink-300 mx-auto mt-16">
+      < div style={{ width: board.width * size, height: board.height * size }} className="relative bg-pink-300 mx-auto mt-16">
         <div style={{ top: head.top * size, left: head.left * size, width: size, height: size }} className="absolute bg-slate-600 rounded-full"></div>
+
+        <div style={{ top: food.top * size, left: food.left * size, width: size, height: size }} className="absolute bg-blue-600 rounded-full"></div>
+
+
+        {tails.map((tail,index) => (
+          <div key={`${tail.left}-${tail.top}-${index}`}
+           style={{
+            top: tail.top * size,
+             left: tail.left * size,
+            width: size,
+          height:size,
+         }} 
+         className="absolute bg-green-600 rounded-full"
+         ></div>
+        ))}
       </div>
       <div className="flex gap-4 justify-center mt-10">
         <button onClick={() => setDirection("up")}>up</button>
-        <button onClick={() => setDirection("up")}>down</button>
-        <button onClick={() => setDirection("up")}>right</button>
-        <button onClick={() => setDirection("up")}>left</button>
+        <button onClick={() => setDirection("down")}>down</button>
+        <button onClick={() => setDirection("right")}>right</button>
+        <button onClick={() => setDirection("left")}>left</button>
       </div>
     </div>
   );
